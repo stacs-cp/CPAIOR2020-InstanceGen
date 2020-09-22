@@ -3,6 +3,7 @@ import argparse
 import subprocess
 from shutil import copy
 import os
+import json
 
 
 def run_cmd(cmd):
@@ -38,22 +39,45 @@ def main():
     print("Write instance summary to " + args.summaryFile)
     t.to_csv(args.summaryFile, index=False)
 
-    # get all instance with ratio>1
-    t = t.astype({'ratio':'float'})
-    tDis = t[t.ratio>1]
-    print("Total number of instances generated: " + str(len(t.instance)))
-    print("Total number of discriminating instances (baseSolverTime/favouredSolverTime > 1): " + str(len(tDis.instance)))
+    with open(args.runDir + '/setting.json') as f:
+        setting = json.load(f)
 
-    # copy discriminating instances into args.copyInstancesTo
-    if args.copyInstancesTo != None:
-        # create the folder if needed
-        if os.path.isdir(args.copyInstancesTo) is False:
-            os.mkdir(args.copyInstancesTo)
-        print("Copy discriminating instances into " + args.copyInstancesTo)
-        # copy discriminating instances to it
-        [copy(resultsDir + '/' + instance + '.param', args.copyInstancesTo) for instance in tDis.instance]        
-        # write out summary of those instances 
-        tDis.to_csv(args.copyInstancesTo + '/summary.csv', index=False)
+    # collect results for discriminating instances 
+    experimentType = setting['generalSettings']['experimentType']
+    if experimentType == 'discriminating':
+        # get all instance with ratio>1
+        t = t.astype({'ratio':'float'})
+        tDis = t[t.ratio>1]
+        print("Total number of instances generated: " + str(len(t.instance)))
+        print("Total number of discriminating instances (baseSolverTime/favouredSolverTime > 1): " + str(len(tDis.instance)))
 
+        # copy discriminating instances into args.copyInstancesTo
+        if args.copyInstancesTo != None:
+            # create the folder if needed
+            if os.path.isdir(args.copyInstancesTo) is False:
+                os.mkdir(args.copyInstancesTo)
+            print("Copy discriminating instances into " + args.copyInstancesTo)
+            # copy discriminating instances to it
+            [copy(resultsDir + '/' + instance + '.param', args.copyInstancesTo) for instance in tDis.instance]        
+            # write out summary of those instances 
+            tDis.to_csv(args.copyInstancesTo + '/summary.csv', index=False)
+
+    # collect results for graded instances 
+    else:
+        # get all graded instances
+        tGraded = t[t.status=='graded']
+        print("Total number of instances generated: " + str(len(t.instance)))
+        print("Total number of graded instances: " + str(len(tGraded.instance)))
+
+        # copy discriminating instances into args.copyInstancesTo
+        if args.copyInstancesTo != None:
+            # create the folder if needed
+            if os.path.isdir(args.copyInstancesTo) is False:
+                os.mkdir(args.copyInstancesTo)
+            print("Copy graded instances into " + args.copyInstancesTo)
+            # copy graded instances to it
+            [copy(resultsDir + '/' + instance + '.param', args.copyInstancesTo) for instance in tGraded.instance]        
+            # write out summary of those instances 
+            tGraded.to_csv(args.copyInstancesTo + '/summary.csv', index=False)
 
 main()

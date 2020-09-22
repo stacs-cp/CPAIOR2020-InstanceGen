@@ -305,7 +305,10 @@ def make_conjure_solve_command(essenceModelFile, eprimeModelFile, instFile, solv
     
 
 def call_conjure_solve(essenceModelFile, eprimeModelFile, instFile, setting, seed):
-    solver = setting['name']
+    if 'name' in setting:
+        solver = setting['name']
+    elif 'solver' in setting:
+        solver = setting['solver']
     lsTempFiles = []
 
     # make conjure solve command line
@@ -423,102 +426,71 @@ def parse_SR_info_file(fn, knownSolverMemOut=False, timelimit=0):
 
 
 def run_single_solver(instFile, seed, setting):
-    essenceModelFile = detailedOutputDir + '/problem.essence'
+    essenceModelFile = './problem.essence'
     eprimeModelFile = detailedOutputDir + '/problem.eprime'
     instance = os.path.basename(instFile).replace('.param','')
+    solver = setting['solver']
 
     score = None
     print('\n')
     log("Solving " + instFile + '...')
 
-    solverSetting = setting['solver']
-
+    status = 'ok'
+    lsSolverTime = []
     for i in range(setting['nEvaluations']):
         rndSeed = seed + i
         print("\n\n----------- With random seed " + str(i) + 'th (' + str(rndSeed) + ')')
-        runStatus, SRTime, solverTime = call_conjure_solve(essenceModelFile, eprimeModelFile, instFile, solverSetting, rndSeed)
+        runStatus, SRTime, solverTime = call_conjure_solve(essenceModelFile, eprimeModelFile, instFile, setting, rndSeed)
 
         # print out results
-        log("\nRun results: solverType=" + solver + ', solver=' + solverSetting['name'] + ', instance=' + instance + ', runId=' + str(i) \
+        localVars = locals()
+        log("\nRun results: solverType=" + solver + ', solver=' + solver + ', instance=' + instance + ', runId=' + str(i) \
                     + ', '.join([s + '=' + str(localVars[s]) for s in ['runStatus','SRTime','solverTime']])) 
-        
+         
         # make score
-        if instanceOptions['scoringScheme'] == 'cp2019':
-            # if the instance violates one of the criteria on at least one of the seeds, make score and quit
-            if SRMemOut==1 or SRTimeOut==1 or solverMemOut==1 or solverTimeOut==1 or solverNodeOut==1 or sat=='no':
-                score = 0
-            # if the instance is too easy, also make score and quit
-            elif instanceOptions['solverMinNode']>0 and nNodes<instanceOptions['solverMinNode']:
-                score = -nNodes
-            elif instanceOptions['solverMinTime']>0 and solverTime<instanceOptions['solverMinTime']:
-                score = -solverTime
-            if score is not None:
-                break
-        elif instanceOptions['scoringScheme'] == 'new-01':
-            if score is None: # initialise score for the first run
-                score = 0
-            if ((sat=='no' and (not 'unsat' in instanceOptions['gradedTypes']))
-                or (sat=='yes' and (not 'sat' in instanceOptions['gradedTypes']))): # if the instance type is unwanted, mark all remaining runs as that type and stop the evaluation
-                score += 0
-                lsOutputLines.extend([output]*(instanceOptions['nEvaluations']-i-1)) # mark all remaining runs as the same type
-                break            
-            # if the instance violates one of the criteria, give a score of 0
-            if SRMemOut==1 or SRTimeOut==1 or solverMemOut==1 or solverTimeOut==1 or solverNodeOut==1:
-                score += 0
-                continue
-            # if the instance is too easy, give it a score of -solverTime (or -solverNode)
-            if instanceOptions['solverMinNode']>0 and nNodes<instanceOptions['solverMinNode']:
-                score += -nNodes
-            elif instanceOptions['solverMinTime']>0 and solverTime<instanceOptions['solverMinTime']:
-                score += -solverTime
-            # if the instance is graded, give it a score of nEvaluations * -minSolverTime (or -minSolverNode)
-            else:
-                if instanceOptions['solverMinNode']>0:
-                    score += instanceOptions['nEvaluations'] * (-instanceOptions['solverMinNode'])
-                else:                    
-                    score += instanceOptions['nEvaluations'] * (-instanceOptions['solverMinTime'])
-        elif instanceOptions['scoringScheme'] == 'new-02':
-            if score is None: # initialise score for the first run
-                score = 0
-            # if the instance violates one of the criteria, give a score of 0
-            if SRMemOut==1 or SRTimeOut==1 or solverMemOut==1 or solverTimeOut==1 or solverNodeOut==1:
-                score += 0
-                continue
-            # if the instance is sat/unsat+too easy, give it a score of -solverTime (or -solverNode)
-            if instanceOptions['solverMinNode']>0 and nNodes<instanceOptions['solverMinNode']:
-                score += -nNodes
-            elif instanceOptions['solverMinTime']>0 and solverTime<instanceOptions['solverMinTime']:
-                score += -solverTime
-            # if the instance is unsat+graded, give it a score of -minSolverTime
-            elif sat=='no':
-                if instanceOptions['solverMinNode']>0:
-                    score += -instanceOptions['solverMinNode']
-                else:
-                    score += -instanceOptions['solverMinTime']
-            # if the instance is sat+graded, give it a score of nEvaluations * -minSolverTime (or -minSolverNode)
-            else:
-                if instanceOptions['solverMinNode']>0:
-                    score += instanceOptions['nEvaluations'] * (-instanceOptions['solverMinNode'])
-                else:                    
-                    score += instanceOptions['nEvaluations'] * (-instanceOptions['solverMinTime'])        
+	# inst unwanted type: score=1
+        if (setting['gradedTypes']!='both') and (runStatus in ['sat','unsat']) and (runStatus!=setting['gradedTypes']):
+            print("\nunwanted instance type. Quitting!...")
+            score = 1
+            stop = True
+            status = 'unwantedType'
+            break
+	# SR timeout or SR memout: score=1
+        if runStatus in ['SRTimeOut','SRMemOut']:
+            print("\nSR timeout/memout while translating the instance. Quitting!...")
+            score = 1
+            status = runStatus
+            break
+	# solverTimeout or solverMemOut: score=0
+        if runStatus in ['solverTimeOut','solverMemOut']:
+            print("\nsolver timeout or out of memory. Quitting!...")
+            score = 0
+            status = runStatus
+            break
+        lsSolverTime.append(solverTime)
+
+    # summary of results
+    meanSolverTime = 0
+    if status == 'ok':
+        meanSolverTime = sum(lsSolverTime)/len(lsSolverTime)
+        if meanSolverTime < setting['solverMinTime']:
+            status = 'tooEasy'
         else:
-            raise Exception("ERROR: scoring scheme " + instanceOptions['scoringScheme'] + " is not supported")
-
-
+            status = 'graded'
+    s = "\nInstance summary: instance=" + instance + ', status=' + status + ', meanSolverTime=' + str(meanSolverTime)
+    print(s)
+    
     # make final score
-    if (instanceOptions['scoringScheme'] == 'cp2019') and (score is None):
-        # i.e., instance satisfies our criteria on all seeds
-        if instanceOptions['solverMinNode']>0:
-            score = -instanceOptions['solverMinNode']
+    if score != None:
+        return score        
+    # - otherwise, for each evaluation: if the run is too easy: score=-solverTime, if the run is graded: score=nEvaluations*-solverMinTime
+    score = 0
+    for i in range(len(lsSolverTime)):
+        if lsSolverTime[i] < setting['solverMinTime']:
+            score -= lsSolverTime[i]
         else:
-            score = -instanceOptions['solverMinTime']    
-    elif instanceOptions['scoringScheme'] in ['new-01', 'new-02']:
-        # do nothing
-        score = score
-    else:
-        raise Exception("ERROR: scoring scheme " + instanceOptions['scoringScheme'] + " is not supported")
-
-    return outHeader, lsOutputLines, score, lsTempOutFiles
+            score -= setting['nEvaluations'] * setting['solverMinTime']
+    return score
 
 
 def read_args(args):
@@ -766,7 +738,7 @@ def main():
 
     # evaluate the generated instance based on gradedness (single solver)
     if experimentType == 'graded':
-        print("TODO")
+        score = run_single_solver(instFile, seed, setting['evaluationSettings'])
 
     # evaluate the generated instance based on discriminating power (two solvers)
     elif experimentType == 'discriminating':
@@ -784,20 +756,20 @@ def main():
 
 main()
 
-# scoring scheme new-01
-# - gen unsat: Inf
-# - gen SR/minion timeout: 2
-# - if a generator instance is:
-#    + unsat: score=Inf (the configuration is rejected immediately by irace)
-#    + SR/minion timeout: score=2 (instead of 1, to match with the discriminating scheme)
-# - if a generator instance is sat, i.e., an instance is generated:
-#    + score for each of 5 runs: SR timeout = unwantedType = solverTimeout = 0, too easy = -solverTime, graded = nSeeds * -minSolverTime
-#      and we just sum them up, with the exception that, as soon as one of the 5 runs is unwantedType, the remaining seeds will be marked as unwantedType too, so we don't actually run them (just duplicate the unwantedType results for the remaining seeds)
+# scoring for graded instances (single solver)
+# - gen unsat/SRTimeOut/SRMemOut/solverMemOut: Inf
+# - gen solverTimeout: 2
+# - inst unwanted type or SR timeout/memout: 1
+# - solver timeout/memout: 0
+# - otherwise, for each evaluation:
+#   + too easy: -solverTime
+#   + graded: nEvaluations * -solverMinTime
+#   and sum them up for final score
 
-# scoring scheme for discriminating solvers:
-# - gen unsat: Inf
-# - gen SR/minion timeout: 2
-# - inst unwanted type or SR timeout (either solver): 1
+# scoring for discriminating instances (two solvers)
+# - gen unsat/SRTimeOut/SRMemOut/solverMemOut: Inf
+# - gen solverTimeOut: 2
+# - inst unwanted type or SR timeout/memout (either solver): 1
 # - favoured solver timeout (any run) or base solver too easy (any run): 0
 # - otherwise: max{-minRatio, -badSolver/goodSolver}
 # - note: timelimit_badSolver = minRatio * timelimit_goodSolver
