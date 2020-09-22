@@ -1,0 +1,9 @@
+{
+    "gradedTypes": "sat",
+    "nEvaluations": 3,
+    "solver": "chuffed",
+    "SRTimelimit": 30,
+    "SRFlags": "",
+    "solverTimelimit": 10,
+    "solverFlags": "-f"
+}

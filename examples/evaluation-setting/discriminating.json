@@ -1,0 +1,20 @@
+{
+    "gradedTypes": "sat",
+    "nEvaluations": 3,
+    "minRatio": 0,
+    "favouredSolver": {
+      "name": "chuffed",
+      "SRTimelimit": 30,
+      "SRFlags": "",
+      "solverTimelimit": 10,
+      "solverFlags": "-f"
+    },
+    "baseSolver": {
+      "name": "cplex",
+      "SRTimelimit": 30,
+      "SRFlags": "",
+      "solverMinTime": 10,
+      "solverTimelimit": 30,
+      "solverFlags": "--cplex-dll /lustre/home/sc054/nttd01/instance-generation-discriminating/published/softwares/cplex/bin/x86-64_linux/libcplex1290.so"
+    }
+}
