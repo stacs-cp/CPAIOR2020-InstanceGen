@@ -9,24 +9,18 @@ This tool is based on the [Essence constraint modelling toolchain](https://const
 	
 - *discriminating instances* between two solvers: valid and satisfiable (optional) instances that are easy for one solver (*favoured solver*) and difficult for the other (*base solver*).
 
-The Essence-CP toolchain used by this tool supports the following solvers:
+Currently the following solvers are supported:
 
 - minion (CP solver)
 - gecode (CP solver)
 - chuffed (CP solver)
 - glucose (SAT solver)
 - glucose-syrup (SAT solver)
-- lingeling/plingeling/treengeling (SAT solver)
+- lingeling (SAT solver)
 - cadical (SAT solver)
-- minisat (SAT solver)
-- bc_minisat_all (AllSAT solver, only works with --number-of-solutions=all)
-- nbc_minisat_all (AllSAT solver, only works with --number-of-solutions=all)
 - open-wbo (MaxSAT solver, only works with optimisation problems)
 - coin-or (MIP solver, *implemented via [MiniZinc](https://www.minizinc.org/)*)
 - cplex (MIP solver, *implemented via [MiniZinc](https://www.minizinc.org/)*)
-- boolector (SMT solver, supported logics: bv)
-- yices (SMT solver, supported logics: bv, lia, idl)
-- z3 (SMT solver, supported logics: bv, lia, nia, idl)
 
 
 ### Installation ###
