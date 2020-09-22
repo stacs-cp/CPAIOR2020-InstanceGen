@@ -111,7 +111,7 @@ python scripts/setup.py --runDir cvrp-experiment --modelFile examples/essence-mo
 
 **Step 3: collect results**
 
-- When the tuning is finished, you can use the Python script `scripts/collect-results.py` to:
+- When the tuning is finished (or even when it is still running!), you can use the Python script `scripts/collect-results.py` to:
 	+ get a summary of results (as a `.csv` file) 
 	+ copy graded/discriminating instances into a specific folder.
 	+ Example: `python scripts/collect-results.py --runDir cvrp-experiment --copyInstancesTo cvrp-experiment/dis-instances/`
