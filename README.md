@@ -114,7 +114,8 @@ python scripts/setup.py --runDir cvrp-experiment --modelFile examples/essence-mo
 	+ saving detailed output so the tuning can be resumed if needed.
 	+ saving all generated instances (including non-graded & non-discriminating instances).
 	+ saving temporary solving output to avoid re-translating each generator instance multiple times. 
-These files can be quite memory-heavy. They can be removed once the tuning is finished and results were collected.
+
+  These files can be quite memory-heavy. They can be removed once the tuning is finished and results were collected.
 
 ### Papers ###
 
