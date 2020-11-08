@@ -1,5 +1,7 @@
 ## A constraint-based automated instance generation tool ##
 
+**This repository is now moved to: https://github.com/stacs-cp/APIG**
+
 This tool is based on the [Essence constraint modelling toolchain](https://constraintmodelling.org/) (Essence-CP) and the automated algorithm configurator [irace](https://iridia.ulb.ac.be/irace/). Starting from an Essence specification of a combinatorial problem, the tool can generate:
 
 - *graded instances* for a single solver: valid, satisfiable and non-trivial instances
